@@ -3,7 +3,7 @@ package com.tharindutech.pos.controller;
 import com.jfoenix.controls.JFXButton;
 import com.tharindutech.pos.dao.DatabaseAccessCode;
 import com.tharindutech.pos.db.DBConnection;
-import com.tharindutech.pos.model.Customer;
+import com.tharindutech.pos.entity.Customer;
 import com.tharindutech.pos.view.tm.CustomerTM;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -17,6 +17,7 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.Optional;
 
 public class CustomerFormController {
@@ -69,15 +70,11 @@ public class CustomerFormController {
     private void searchCustomers(String text) {
         String searchText = "%" + text + "%";
         try {
-            ObservableList<CustomerTM> tmList = FXCollections.observableArrayList();
-            String sql = "SELECT * FROM Customer WHERE name LIKE ? || address LIKE ?";
-            PreparedStatement statement = DBConnection.getInstance().getConnection().prepareStatement(sql);
-            statement.setString(1, searchText);
-            statement.setString(2, searchText);
-            ResultSet set = statement.executeQuery();
-            while (set.next()) {
+            ObservableList tmList=FXCollections.observableArrayList();
+            ArrayList<Customer>customerList=new DatabaseAccessCode().searchCustomers(text);
+            for (Customer c:customerList) {
                 Button btn = new Button("DELETE");
-                CustomerTM tm = new CustomerTM(set.getString(1), set.getString(2), set.getString(3), set.getDouble(4), btn);
+                CustomerTM tm = new CustomerTM(c.getId(), c.getName(),c.getAddress(),c.getSalary(), btn);
                 tmList.add(tm);
 
                 btn.setOnAction(event -> {
@@ -86,10 +83,7 @@ public class CustomerFormController {
                     if (buttonType.get() == ButtonType.YES) {
 
                         try {
-                            String sql1 = "DELETE FROM Customer WHERE id=?";
-                            PreparedStatement statement1 = DBConnection.getInstance().getConnection().prepareStatement(sql1);
-                            statement1.setString(1, tm.getId());
-                            if (statement1.executeUpdate() > 0) {
+                            if (new DatabaseAccessCode().deleteCustomer(tm.getId())) {
                                 searchCustomers(searchText);
                                 new Alert(Alert.AlertType.INFORMATION, "Customer Deleted Successfully").show();
                             } else {
@@ -99,10 +93,11 @@ public class CustomerFormController {
                         } catch (ClassNotFoundException | SQLException e) {
                             e.printStackTrace();
                         }
-
-
                     }
                 });
+
+            } {
+
 
             }
             tblCustomer.setItems(tmList);
@@ -112,14 +107,14 @@ public class CustomerFormController {
     }
 
     public void saveCustomerOnAction(ActionEvent actionEvent) {
-        Customer c = new Customer(txtId.getText(), txtName.getText(), txtAddress.getText(), Double.parseDouble(txtSalary.getText()));
+        Customer c = new Customer();
         if (btnSaveCustomer.getText().equalsIgnoreCase("Save Customer")) {
             try {
-               new DatabaseAccessCode().saveCustomer(
-                       new com.tharindutech.pos.entity.Customer()
-               )
+                boolean isCustomerSaved = new DatabaseAccessCode().saveCustomer(
+                        new Customer(
+                                txtId.getText(), txtName.getText(), txtAddress.getText(), Double.parseDouble(txtSalary.getText())));
 
-                if (statement.executeUpdate() > 0) {
+                if (isCustomerSaved) {
                     searchCustomers(searchText);
                     clearFields();
                     new Alert(Alert.AlertType.INFORMATION, "Customer Saved Successfully").show();
@@ -135,16 +130,11 @@ public class CustomerFormController {
         } else {
 
             try {
-                Class.forName("com.mysql.cj.jdbc.Driver");
-                Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/Thogakade", "root", "1234");
-                String sql = "UPDATE Customer SET name=?,address=?,salary=? WHERE id= ?";
-                PreparedStatement statement = connection.prepareStatement(sql);
-                statement.setString(1, c.getName());
-                statement.setString(2, c.getAddress());
-                statement.setDouble(3, c.getSalary());
-                statement.setString(4, c.getId());
+                boolean isCustomerUpdated = new DatabaseAccessCode().updateCustomer(
+                        new Customer(
+                                txtId.getText(), txtName.getText(), txtAddress.getText(), Double.parseDouble(txtSalary.getText())));
 
-                if (statement.executeUpdate() > 0) {
+                if (isCustomerUpdated) {
                     searchCustomers(searchText);
                     clearFields();
                     new Alert(Alert.AlertType.INFORMATION, "Customer Updated Successfully").show();
