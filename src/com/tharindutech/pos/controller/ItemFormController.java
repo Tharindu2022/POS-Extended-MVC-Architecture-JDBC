@@ -1,12 +1,16 @@
 package com.tharindutech.pos.controller;
 
 import com.jfoenix.controls.JFXButton;
+import com.tharindutech.pos.bo.BoFactory;
+import com.tharindutech.pos.bo.BoTypes;
+import com.tharindutech.pos.bo.custom.ItemBo;
 import com.tharindutech.pos.dao.DaoFactory;
 import com.tharindutech.pos.dao.DaoTypes;
 import com.tharindutech.pos.dao.DatabaseAccessCode;
 import com.tharindutech.pos.dao.custom.ItemDao;
 import com.tharindutech.pos.dao.custom.impl.ItemDaoImpl;
 import com.tharindutech.pos.db.DBConnection;
+import com.tharindutech.pos.dto.ItemDto;
 import com.tharindutech.pos.entity.Item;
 import com.tharindutech.pos.view.tm.ItemTM;
 import javafx.collections.FXCollections;
@@ -39,7 +43,7 @@ public class ItemFormController {
     public TableColumn colQtyOnHand;
     public TableColumn colOptions;
     public TableView tblItem;
-    private ItemDao itemDao= DaoFactory.getInstance().getDao(DaoTypes.ITEM);
+    private ItemBo itemBo= BoFactory.getInstance().getBo(BoTypes.ITEM);
     private String searchText = "";
 
 
@@ -91,8 +95,8 @@ public class ItemFormController {
     public void saveItemOnAction(ActionEvent actionEvent) {
         if (btnSaveItem.getText().equalsIgnoreCase("Save Item")) {
             try {
-                boolean isItemSaved=itemDao.save(
-                        new Item(txtCode.getText(), txtDescription.getText(),
+                boolean isItemSaved=itemBo.saveItem(
+                        new ItemDto(txtCode.getText(), txtDescription.getText(),
                                 Double.parseDouble(txtUnitPrice.getText()), Integer.parseInt(txtQtyOnHand.getText())));
                 if (isItemSaved) {
                     searchItems(searchText);
@@ -108,7 +112,7 @@ public class ItemFormController {
 
         } else {
             try {
-               boolean isItemUpdated=itemDao.update(new Item(txtCode.getText(), txtDescription.getText(),
+               boolean isItemUpdated=itemBo.updateItem(new ItemDto(txtCode.getText(), txtDescription.getText(),
                        Double.parseDouble(txtUnitPrice.getText()), Integer.parseInt(txtQtyOnHand.getText())));
 
                 if (isItemUpdated) {
@@ -136,8 +140,8 @@ public class ItemFormController {
     private void searchItems(String text) throws SQLException, ClassNotFoundException {
         String searchText = "%" + text + "%";
         ObservableList<ItemTM> tmList = FXCollections.observableArrayList();
-        ArrayList<Item>itemList=itemDao.searchItems(text);
-        for (Item i:itemList) {
+        ArrayList<ItemDto>itemList=itemBo.searchItem(text);
+        for (ItemDto i:itemList) {
             Button btn = new Button("DELETE");
             ItemTM tm = new ItemTM(i.getCode(),i.getDescription(),i.getUnitPrice(),i.getQtyOnHand(), btn);
             tmList.add(tm);
@@ -147,7 +151,7 @@ public class ItemFormController {
                 if (buttonType.get() == ButtonType.YES) {
                     try {
                         //ObservableList<CustomerTM> tmList = FXCollections.observableArrayList();
-                        if (itemDao.delete(tm.getCode())) {
+                        if (itemBo.deleteItem(tm.getCode())) {
                             searchItems(searchText);
                             new Alert(Alert.AlertType.INFORMATION, "Item Deleted Successfully").show();
                         } else {
