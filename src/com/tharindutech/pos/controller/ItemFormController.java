@@ -1,8 +1,10 @@
 package com.tharindutech.pos.controller;
 
 import com.jfoenix.controls.JFXButton;
+import com.tharindutech.pos.dao.DatabaseAccessCode;
+import com.tharindutech.pos.dao.custom.impl.ItemDaoImpl;
 import com.tharindutech.pos.db.DBConnection;
-import com.tharindutech.pos.model.Item;
+import com.tharindutech.pos.entity.Item;
 import com.tharindutech.pos.view.tm.ItemTM;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -16,6 +18,7 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.Optional;
 
 public class ItemFormController {
@@ -37,7 +40,7 @@ public class ItemFormController {
     private String searchText = "";
 
 
-    public void initialize() {
+    public void initialize() throws SQLException, ClassNotFoundException {
         colCode.setCellValueFactory(new PropertyValueFactory<>("code"));
         colDescription.setCellValueFactory(new PropertyValueFactory<>("description"));
         colUnitPrice.setCellValueFactory(new PropertyValueFactory<>("unitPrice"));
@@ -51,7 +54,13 @@ public class ItemFormController {
 
         txtSearch.textProperty().addListener((observable, oldValue, newValue) -> {
                     searchText = newValue;
-                    searchItems(searchText);
+                    try {
+                        searchItems(searchText);
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    } catch (ClassNotFoundException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
         );
 
@@ -77,18 +86,12 @@ public class ItemFormController {
     }
 
     public void saveItemOnAction(ActionEvent actionEvent) {
-        Item i = new Item(txtCode.getText(), txtDescription.getText(), Double.parseDouble(txtUnitPrice.getText()), Integer.parseInt(txtQtyOnHand.getText()));
         if (btnSaveItem.getText().equalsIgnoreCase("Save Item")) {
-
             try {
-                String sql = "INSERT INTO Item VALUES(?,?,?,?)";
-                PreparedStatement statement = DBConnection.getInstance().getConnection().prepareStatement(sql);
-                statement.setString(1, i.getCode());
-                statement.setString(2, i.getDescription());
-                statement.setDouble(3, i.getUnitPrice());
-                statement.setInt(4, i.getQtyOnHand());
-
-                if (statement.executeUpdate() > 0) {
+                boolean isItemSaved=new ItemDaoImpl().save(
+                        new Item(txtCode.getText(), txtDescription.getText(),
+                                Double.parseDouble(txtUnitPrice.getText()), Integer.parseInt(txtQtyOnHand.getText())));
+                if (isItemSaved) {
                     searchItems(searchText);
                     clearFields();
                     new Alert(Alert.AlertType.INFORMATION, "Item  Saved Successfully").show();
@@ -102,14 +105,10 @@ public class ItemFormController {
 
         } else {
             try {
-                String sql = "UPDATE Item SET description=?,unitPrice=?,qtyOnHand=? WHERE code= ?";
-                PreparedStatement statement = DBConnection.getInstance().getConnection().prepareStatement(sql);
-                statement.setString(1, i.getDescription());
-                statement.setDouble(2, i.getUnitPrice());
-                statement.setDouble(3, i.getQtyOnHand());
-                statement.setString(4, i.getCode());
+               boolean isItemUpdated=new ItemDaoImpl().update(new Item(txtCode.getText(), txtDescription.getText(),
+                       Double.parseDouble(txtUnitPrice.getText()), Integer.parseInt(txtQtyOnHand.getText())));
 
-                if (statement.executeUpdate() > 0) {
+                if (isItemUpdated) {
                     searchItems(searchText);
                     clearFields();
                     new Alert(Alert.AlertType.INFORMATION, "Item Updated Successfully").show();
@@ -131,44 +130,33 @@ public class ItemFormController {
         txtQtyOnHand.clear();
     }
 
-    private void searchItems(String text) {
+    private void searchItems(String text) throws SQLException, ClassNotFoundException {
         String searchText = "%" + text + "%";
-        try {
-            ObservableList<ItemTM> tmList = FXCollections.observableArrayList();
-            String sql = "SELECT * FROM Item WHERE description LIKE ? ";
-            PreparedStatement statement = DBConnection.getInstance().getConnection().prepareStatement(sql);
-            statement.setString(1, searchText);
-            ResultSet set = statement.executeQuery();
-            while (set.next()) {
-                Button btn = new Button("DELETE");
-                ItemTM tm = new ItemTM(set.getString(1), set.getString(2), set.getDouble(3), set.getInt(4), btn);
-                tmList.add(tm);
-
-                btn.setOnAction(event -> {
-                    Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Are you sure that you want to delete?", ButtonType.YES, ButtonType.NO);
-                    Optional<ButtonType> buttonType = alert.showAndWait();
-                    if (buttonType.get() == ButtonType.YES) {
-                        try {
-                            //ObservableList<CustomerTM> tmList = FXCollections.observableArrayList();
-                            String sql1 = "DELETE FROM Item WHERE code=?";
-                            PreparedStatement statement1 = DBConnection.getInstance().getConnection().prepareStatement(sql1);
-                            statement1.setString(1, tm.getCode());
-                            if (statement1.executeUpdate() > 0) {
-                                searchItems(searchText);
-                                new Alert(Alert.AlertType.INFORMATION, "Item Deleted Successfully").show();
-                            } else {
-                                new Alert(Alert.AlertType.WARNING, "Try Again !").show();
-                            }
-
-                        } catch (ClassNotFoundException | SQLException e) {
-                            e.printStackTrace();
+        ObservableList<ItemTM> tmList = FXCollections.observableArrayList();
+        ArrayList<Item>itemList=new ItemDaoImpl().searchItems(text);
+        for (Item i:itemList) {
+            Button btn = new Button("DELETE");
+            ItemTM tm = new ItemTM(i.getCode(),i.getDescription(),i.getUnitPrice(),i.getQtyOnHand(), btn);
+            tmList.add(tm);
+            btn.setOnAction(event -> {
+                Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Are you sure that you want to delete?", ButtonType.YES, ButtonType.NO);
+                Optional<ButtonType> buttonType = alert.showAndWait();
+                if (buttonType.get() == ButtonType.YES) {
+                    try {
+                        //ObservableList<CustomerTM> tmList = FXCollections.observableArrayList();
+                        if (new ItemDaoImpl().delete(tm.getCode())) {
+                            searchItems(searchText);
+                            new Alert(Alert.AlertType.INFORMATION, "Item Deleted Successfully").show();
+                        } else {
+                            new Alert(Alert.AlertType.WARNING, "Try Again !").show();
                         }
+
+                    } catch (ClassNotFoundException | SQLException e) {
+                        e.printStackTrace();
                     }
-                });
-            }
-            tblItem.setItems(tmList);
-        } catch (ClassNotFoundException | SQLException e) {
-            e.printStackTrace();
+                }
+            });
         }
-        }
+        tblItem.setItems(tmList);
+    }
 }

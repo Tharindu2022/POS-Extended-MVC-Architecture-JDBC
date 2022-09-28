@@ -2,21 +2,20 @@ package com.tharindutech.pos.dao;
 
 import com.tharindutech.pos.db.DBConnection;
 import com.tharindutech.pos.entity.Customer;
+import com.tharindutech.pos.entity.Item;
+import com.tharindutech.pos.view.tm.CustomerTM;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.sql.*;
+import java.util.ArrayList;
 
 public class DatabaseAccessCode {
-
-    public boolean saveCustomer(Customer c) throws SQLException, ClassNotFoundException {
-        String sql = "INSERT INTO Customer VALUES(?,?,?,?)";
-        PreparedStatement statement = DBConnection.getInstance().getConnection().prepareStatement(sql);
-        statement.setString(1, c.getId());
-        statement.setString(2, c.getName());
-        statement.setString(3, c.getAddress());
-        statement.setDouble(4, c.getSalary());
-         return statement.executeUpdate()>0;
-    }
-
-
+//    public ArrayList<Customer> searchCustomers(String searchText) throws SQLException, ClassNotFoundException {
+//
+//    }
+//    //================================
+//    public ArrayList<Item> searchItems(String searchText) throws SQLException, ClassNotFoundException {
+//
+//    }
 }

@@ -2,6 +2,7 @@ package com.tharindutech.pos.controller;
 
 import com.jfoenix.controls.JFXButton;
 import com.tharindutech.pos.dao.DatabaseAccessCode;
+import com.tharindutech.pos.dao.custom.impl.CustomerDaoImpl;
 import com.tharindutech.pos.db.DBConnection;
 import com.tharindutech.pos.entity.Customer;
 import com.tharindutech.pos.view.tm.CustomerTM;
@@ -71,7 +72,7 @@ public class CustomerFormController {
         String searchText = "%" + text + "%";
         try {
             ObservableList tmList=FXCollections.observableArrayList();
-            ArrayList<Customer>customerList=new DatabaseAccessCode().searchCustomers(text);
+            ArrayList<Customer>customerList=new CustomerDaoImpl().searchCustomers(text);
             for (Customer c:customerList) {
                 Button btn = new Button("DELETE");
                 CustomerTM tm = new CustomerTM(c.getId(), c.getName(),c.getAddress(),c.getSalary(), btn);
@@ -83,7 +84,7 @@ public class CustomerFormController {
                     if (buttonType.get() == ButtonType.YES) {
 
                         try {
-                            if (new DatabaseAccessCode().deleteCustomer(tm.getId())) {
+                            if (new CustomerDaoImpl().delete(tm.getId())) {
                                 searchCustomers(searchText);
                                 new Alert(Alert.AlertType.INFORMATION, "Customer Deleted Successfully").show();
                             } else {
@@ -110,7 +111,7 @@ public class CustomerFormController {
         Customer c = new Customer();
         if (btnSaveCustomer.getText().equalsIgnoreCase("Save Customer")) {
             try {
-                boolean isCustomerSaved = new DatabaseAccessCode().saveCustomer(
+                boolean isCustomerSaved = new CustomerDaoImpl().save(
                         new Customer(
                                 txtId.getText(), txtName.getText(), txtAddress.getText(), Double.parseDouble(txtSalary.getText())));
 
@@ -130,7 +131,7 @@ public class CustomerFormController {
         } else {
 
             try {
-                boolean isCustomerUpdated = new DatabaseAccessCode().updateCustomer(
+                boolean isCustomerUpdated = new CustomerDaoImpl().update(
                         new Customer(
                                 txtId.getText(), txtName.getText(), txtAddress.getText(), Double.parseDouble(txtSalary.getText())));
 
