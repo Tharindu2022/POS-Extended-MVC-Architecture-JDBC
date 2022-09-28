@@ -37,6 +37,5 @@ public class CustomerDaoImpl implements CustomerDao {
             list.add(new Customer(set.getString(1), set.getString(2), set.getString(3), set.getDouble(4)));
         }
         return list;
-
     }
 }
